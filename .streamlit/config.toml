@@ -1,0 +1,7 @@
+[theme]
+base = "light"
+primaryColor = "#D77A3A"              # terracotta
+backgroundColor = "#FBFAF6"           # warm off-white
+secondaryBackgroundColor = "#EAF2EA"  # soft sage panels
+textColor = "#2F3B2F"                 # deeper green-charcoal
+font = "sans serif"
