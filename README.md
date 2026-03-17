@@ -38,7 +38,7 @@ The data model deliberately separates **context**, **intent**, and **observed be
 
 This structure allows the app to handle multiple plants of the same species behaving differently in different locations, and to reason about how real‑world care aligns (or diverges) from expectations.
 
-The model is designed to support future AI‑assisted insights — such as pattern detection or anomaly highlighting — while keeping all decision logic explainable and human‑controlled. Any AI layer is intended to assist judgement, not replace it.
+The model is designed to support future AI‑assisted insights(e.g. pattern detection or anomaly highlighting) while keeping all decision logic explainable and human‑controlled. Any AI layer is intended to assist judgement, not replace it.
 
 ---
 
