@@ -47,27 +47,23 @@ def get_mascot_path(season: str) -> str:
     season = (season or "").strip().lower()
 
     mapping = {
-        "spring": "PlantCareMascotSpring.png",
-        "summer": "PlantCareMascotSummer.png",
-        "autumn": "PlantCareMascotAutumn.png",
-        "winter": "PlantCareMascotWinter.png",
+        "spring": "images_mascot\\PlantCareMascotSpring.png",
+        "summer": "images_mascot\\PlantCareMascotSummer.png",
+        "autumn": "images_mascot\\PlantCareMascotAutumn.png",
+        "winter": "images_mascot\\PlantCareMascotWinter.png",
     }
 
     candidates = [
         mapping.get(season, ""),
-        "PlantCareMascot.png",
-        "PlantCareMascotSpring.png",
+        "images_mascot\\PlantCareMascot.png",
+        "images_mascot\\PlantCareMascotSpring.png",
     ]
 
     for c in candidates:
         if c and Path(c).exists():
             return c
 
-    return "PlantCareMascotSpring.png"
-
-def block_bar(score_0_to_10: int, width=10, full="█", empty="░"):
-    score = max(0, min(width, int(score_0_to_10)))
-    return full * score + empty * (width - score)
+    return "images_mascot\\PlantCareMascotSpring.png"
 
 
 def health_score(rel_rows):
