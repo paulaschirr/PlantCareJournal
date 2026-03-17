@@ -27,15 +27,18 @@ This is a deliberately non‑automated first version: the emphasis is on explain
 
 ---
 
-## AI‑assisted direction (not yet implemented)
+## Data model & AI direction
 
-The app is intentionally designed to evolve toward AI‑assisted insights, for example:
+The data model deliberately separates **context**, **intent**, and **observed behaviour**.
 
-- Detecting care patterns across seasons or environments  
-- Highlighting anomalous plant behaviour relative to historical trends  
-- Supporting recommendation logic grounded in observed data, not fixed schedules  
+- **Species** store shared, stable context (e.g. native climate, care tendencies)
+- **Plants** represent individual instances of a species, each with its own environment
+- **Care profiles** capture seasonal care intent (watering / feeding intervals)
+- **Care logs** record what actually happened, as an append‑only history
 
-Crucially, these capabilities are treated as *extensions* of a solid data model, not substitutes for it.
+This structure allows the app to handle multiple plants of the same species behaving differently in different locations, and to reason about how real‑world care aligns (or diverges) from expectations.
+
+The model is designed to support future AI‑assisted insights — such as pattern detection or anomaly highlighting — while keeping all decision logic explainable and human‑controlled. Any AI layer is intended to assist judgement, not replace it.
 
 ---
 
