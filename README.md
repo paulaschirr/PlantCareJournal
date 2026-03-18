@@ -64,10 +64,12 @@ The AI layer is intentionally narrow in scope: it acts as a **readable narrative
 
 ## Why this project exists
 
-This project was built as a **portfolio piece** to demonstrate:
+This project began as a personal hobby and learning exercise, combining a love for indoor plants with data analysis and a desire to explore something new. It later evolved into a **portfolio piece** to demonstrate:
+
 - Structured data modelling and schema design  
 - Translating messy real‑world behaviour into clear metrics  
-- Designing systems that balance usability, explainability, and future extensibility  
+- Designing AI features that are constrained, auditable, and user‑trust‑preserving
+- Balancing usability, explainability, and future extensibility
 
 It is intentionally small in scope but opinionated in design.
 
@@ -75,4 +77,4 @@ It is intentionally small in scope but opinionated in design.
 
 ## Status
 
-Active personal project. The UI and logic are stable; future work focuses on insight generation rather than feature expansion.
+Active personal project. Core data model and UI are stable; current work focuses on insight quality and presentation, not feature sprawl.
