@@ -4,7 +4,7 @@
 
 The app helps answer a simple daily question: *what needs attention today, and why?*
 
-It does this by combining structured care logging, seasonal context, and clear status signals — alongside an optional AI‑generated plant journal entry that turns recent care history into a readable, human‑friendly narrative.
+It does this by combining structured care logging, seasonal context, and clear status signals, alongside an optional AI‑generated plant journal entry that turns the plant's profile and recent care history into a readable, human‑friendly narrative.
 This is a deliberately non‑automated project: the emphasis is on explainable logic, trustworthy data, and AI used as an interpretive layer rather than a decision‑maker.
 
 ---
