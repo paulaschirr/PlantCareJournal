@@ -2,9 +2,9 @@
 
 **My Plant Journal** is a personal plant care tracking app built to demonstrate thoughtful data modelling, decision‑focused UX, and an architecture designed to support future AI‑assisted insights.
 
-The app helps answer a simple daily question: *what needs attention today, and why?*, by combining structured event logging, seasonal logic, and clear status signals across all plants.
-
-This is a deliberately non‑automated first version: the emphasis is on explainable logic, trustworthy data, and foundations that can support more advanced insights later.
+The app helps answer a simple daily question: *what needs attention today, and why?*
+It does this by combining structured care logging, seasonal context, and clear status signals — alongside an optional AI‑generated plant journal entry that turns recent care history into a readable, human‑friendly narrative.
+This is a deliberately non‑automated project: the emphasis is on explainable logic, trustworthy data, and AI used as an interpretive layer rather than a decision‑maker.
 
 ---
 
