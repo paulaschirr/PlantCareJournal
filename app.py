@@ -2,10 +2,16 @@ import streamlit as st
 import sqlite3
 from datetime import date
 from pathlib import Path
+import os
 
 from weather import get_current_weather
 from log_event import log_event
 from today import get_season, fetch_due_tasks, format_explanation
+
+
+from ai_context import get_plant_context_bundle
+from ai_client import generate_plant_story, PROMPT_VERSION, MODEL_ID_DEFAULT
+
 
 #---------Helpers-----------
 
@@ -125,13 +131,16 @@ season = get_season(today)
 
 weather = get_current_weather()
 
+nbsp = "\u00A0" # non-breaking space for better spacing in caption
+
 if weather:
     st.caption(
-        f"Today: {format_date_with_ordinal(today)}  ·  "
-        f"Season: {season.capitalize()}  ·  "
-        f"Outdoor weather: {weather['description']}, {weather['temp_c']}°C, "
-        f"{weather['humidity']}% humidity "
+    f"Today: {format_date_with_ordinal(today)}{nbsp*4}·{nbsp*4}"
+    f"Season: {season.capitalize()}{nbsp*4}·{nbsp*4}"
+    f"Outdoor Weather: {weather['description'].capitalize()}, {weather['temp_c']}°C, "
+    f"{weather['humidity']}% humidity"
     )
+
 else:
     st.write(f"Today: {format_date_with_ordinal(today)}  •  Season: {season.capitalize()}  •  Outdoor weather unavailable")
 
@@ -374,105 +383,119 @@ if st.session_state.get("anytime_feedback"):
 st.space(size="medium")
 
 # ---------- Plant overview ----------
-
-
-
 container = st.container(border=True, key="profiles_container")
 
 with container:
     left, right = st.columns([6, 1])
-
     with left:
-        st.header("Plant profile & history")
-
+        st.header("Profile & History")
     with right:
         st.image(get_mascot_path(season), width=130)
 
-plants = get_all_plants()
-
-
-# Use plant_id as the unique option, display "name (location)".
-plant_ids = [p["plant_id"] for p in plants]
-plant_lookup = {p["plant_id"]: (p["name"], p["location"]) for p in plants}
-
-selected_plant_id = container.selectbox(
-    "Select a plant",
-    options=plant_ids,
-    format_func=lambda pid: f"{plant_lookup[pid][0]} ({plant_lookup[pid][1]})",
-)
-
-if selected_plant_id:
-    plant_id = selected_plant_id
-    with sqlite3.connect(DB_PATH) as conn:
-        conn.row_factory = sqlite3.Row
-
-        history = conn.execute(
-            """
-            SELECT event_type, event_date, notes
-            FROM care_log
-            WHERE plant_id = ?
-            ORDER BY event_date DESC
-            LIMIT 5
-            """,
-            (plant_id,),
-        ).fetchall()
-
-    profile = conn.execute(
-            """
-            SELECT
-            cp.season,
-            cp.watering_days,
-            cp.feeding_days,
-            cp.notes AS seasonal_notes,
-            s.care_context,
-            s.native_climate,
-            s.common_name,
-            s.scientific_name,
-            p.location,
-            p.notes AS plant_notes
-            FROM plants p
-            JOIN species s
-                ON s.species_id = p.species_id
-            JOIN care_profiles cp
-                ON cp.plant_id = p.plant_id
-            WHERE p.plant_id = ?
-                AND cp.season = ?;
-    """,
-    (plant_id, season),
-    ).fetchone()
-
-    container.write(
-        f"*{profile['scientific_name'] or ""}* "
-        f"({profile['care_context'] or ""}), "
-        f"{profile['native_climate'] or ""}"
-                    )
-
-    container.subheader("Recent care")
-    if history:
-        for h in history:
-            event_dt = date.fromisoformat(h["event_date"])
-            container.write(
-            f"- {format_date_with_ordinal(event_dt)}: {h['event_type']} ({h['notes'] or 'no notes'})"
-            )
+    # Pull plant list once
+    plants = get_all_plants()
+    if not plants:
+        st.info("No plants found in the database yet.")
     else:
-        container.write("No care events logged yet.")
+        # Use plant_id as the unique option, display "name (location)".
+        plant_ids = [p["plant_id"] for p in plants]
+        plant_lookup = {p["plant_id"]: (p["name"], p["location"]) for p in plants}
 
-    container.subheader(f"Seasonal care profile: {season.capitalize()}")
-
-    if profile:
-
-        container.write(
-            f"Water every **{profile['watering_days']}** days • "
-            f"Feed every **{profile['feeding_days'] or '—'}** days"
+        selected_plant_id = st.selectbox(
+            "Select a plant",
+            options=plant_ids,
+            format_func=lambda pid: f"{plant_lookup[pid][0]} ({plant_lookup[pid][1]})",
+            key="plant_selector",
         )
-        container.write(f"{season.capitalize()} notes: {profile['seasonal_notes']}")
-    else:
-        container.warning("No care profile for this season.")
 
-container.space(size="small")
+        # Only proceed if a plant is selected
+        if selected_plant_id is None:
+            st.caption("Select a plant to view its journal entry and history.")
+        else:
+            plant_id = int(selected_plant_id)
 
-with container.expander("**Bear in mind...**"):
-    st.write(
-        "This dashboard bases reminders on AI-generated care profiles for all plants in the houseplant database and their actual care history (as logged through this app). "
-        "If a plant looks stressed, check whether it has been watered too frequently or too infrequently relative to its seasonal profile."
-    )
+            # --- AI story (cached) ---
+            # Define this ONCE per script run; Streamlit is fine with it here.
+            @st.cache_data(show_spinner=False)
+            def _cached_story(cache_key: tuple, api_key: str, context_bundle: dict, voice_card: str):
+                # cache_key is intentionally unused inside; it drives cache invalidation
+                return generate_plant_story(
+                    api_key=api_key,
+                    context_bundle=context_bundle,
+                    voice_card=voice_card,
+                    model_id=MODEL_ID_DEFAULT,
+                )
+
+            api_key = st.secrets["GEMINI_API_KEY"]
+
+            # Single source of truth for this whole section:
+            context_bundle, voice_card, last_log_id = get_plant_context_bundle(
+                plant_id=plant_id,
+                season=season,
+                today=today,
+                weather=weather,
+                log_limit=20,
+            )
+
+            # Nice one-line botanical context (replaces your old profile SQL)
+            species = context_bundle.get("species", {})
+            scientific = (species.get("scientific_name") or "").strip()
+            care_context = (species.get("care_context") or "").strip()
+            native_climate = (species.get("native_climate") or "").strip()
+
+            if scientific or care_context or native_climate:
+                # Match your old italic style but avoid KeyErrors
+                parts = []
+                if scientific:
+                    parts.append(f"*{scientific}*")
+                if care_context:
+                    parts.append(f"({care_context})")
+                if native_climate:
+                    parts.append(native_climate)
+                st.write(" ".join(parts).replace(" )", ")"))
+
+            # Cache key: use last_log_id so it changes on every inserted care_log row
+            cache_key = (plant_id, season, last_log_id, PROMPT_VERSION, MODEL_ID_DEFAULT)
+
+            # Generate + render
+            try:
+                with st.spinner("Writing the leaf notes..."):
+                    story = _cached_story(cache_key, api_key, context_bundle, voice_card)
+
+                st.subheader("Plant journal entry")  # change this label as you like
+                st.write(story.get("narrative", ""))
+
+                highlights = story.get("highlights") or []
+                if highlights:
+                    st.caption("Based on:")
+                    for h in highlights:
+                        st.write(f"- {h}")
+
+                suggestions = story.get("suggestions") or []
+                if suggestions:
+                    st.caption("If you want to do something today:")
+                    for s in suggestions:
+                        st.write(f"- {s}")
+
+                unknowns = story.get("unknowns") or []
+                if unknowns:
+                    st.caption("Context missing:")
+                    for u in unknowns:
+                        st.write(f"- {u}")
+
+            except Exception as e:
+                st.error(f"AI story failed: {e}")
+
+            # --- A small “Recent care” section to match your previous UI ---
+            st.subheader("Recent care")
+            recent = context_bundle.get("care_log_recent", [])[:5]
+            if recent:
+                for r in recent:
+                    # event_date is ISO string, event_type is your raw stored value
+                    st.write(f"- {r.get('event_date', '')}: {r.get('event_type', '')} ({r.get('notes') or 'no notes'})")
+            else:
+                st.write("No care events logged yet.")
+
+            # Raw facts / logs / schedule
+            with st.expander("Details / logs / schedule"):
+                st.json(context_bundle)
