@@ -58,7 +58,7 @@ The AI layer is intentionally narrow in scope: it acts as a **readable narrative
 ## A note on tone
 <img src="images_mascot/drawing2.png" width="160" align="right" />
 
-- The app includes a small, hand‑drawn plant mascot that serves as the narrative voice for the optional AI‑assisted journal entries
+- The app includes a small, hand‑drawn plant mascot that serves as the narrative voice for the AI‑assisted plant journal entries
 - This is a deliberate design choice, keeping the AI layer readable and human‑centred, without obscuring the underlying data or decision logic
 
 ---
