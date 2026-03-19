@@ -1,7 +1,6 @@
 import streamlit as st
 import sqlite3
 from datetime import date
-from pathlib import Path
 import os
 
 from weather import get_current_weather
@@ -47,30 +46,6 @@ def get_all_plants():
         return conn.execute(
             "SELECT plant_id, name, location FROM plants ORDER BY location, name"
         ).fetchall()
-
-def get_mascot_path(season: str) -> str:
-    """Return the mascot image filename for the current season (fallback-safe)."""
-    season = (season or "").strip().lower()
-
-    mapping = {
-        "spring": "images_mascot\\PlantCareMascotSpring.png",
-        "summer": "images_mascot\\PlantCareMascotSummer.png",
-        "autumn": "images_mascot\\PlantCareMascotAutumn.png",
-        "winter": "images_mascot\\PlantCareMascotWinter.png",
-    }
-
-    candidates = [
-        mapping.get(season, ""),
-        "images_mascot\\PlantCareMascot.png",
-        "images_mascot\\PlantCareMascotSpring.png",
-    ]
-
-    for c in candidates:
-        if c and Path(c).exists():
-            return c
-
-    return "images_mascot\\PlantCareMascotSpring.png"
-
 
 def health_score(rel_rows):
     """
@@ -385,76 +360,78 @@ st.space(size="medium")
 # ---------- Plant overview ----------
 container = st.container(border=True, key="profiles_container")
 
+
 with container:
-    left, right = st.columns([6, 1])
+    # Pull plant list once (before rendering UI that depends on it)
+    plants = get_all_plants()
+
+    left, right = st.columns([5, 1], vertical_alignment="bottom")
+
     with left:
         st.header("Profile & History")
-    with right:
-        st.image(get_mascot_path(season), width=130)
-
-    # Pull plant list once
-    plants = get_all_plants()
-    if not plants:
-        st.info("No plants found in the database yet.")
-    else:
-        # Use plant_id as the unique option, display "name (location)".
-        plant_ids = [p["plant_id"] for p in plants]
-        plant_lookup = {p["plant_id"]: (p["name"], p["location"]) for p in plants}
-
-        selected_plant_id = st.selectbox(
-            "Select a plant",
-            options=plant_ids,
-            format_func=lambda pid: f"{plant_lookup[pid][0]} ({plant_lookup[pid][1]})",
-            key="plant_selector",
-        )
-
-        # Only proceed if a plant is selected
-        if selected_plant_id is None:
-            st.caption("Select a plant to view its journal entry and history.")
+        if not plants:
+            st.info("No plants found in the database yet.")
+            selected_plant_id = None
         else:
-            plant_id = int(selected_plant_id)
+            plant_ids = [p["plant_id"] for p in plants]
+            plant_lookup = {p["plant_id"]: (p["name"], p["location"]) for p in plants}
 
-            # --- AI story (cached) ---
-            # Define this ONCE per script run; Streamlit is fine with it here.
-            @st.cache_data(show_spinner=False, ttl=60*60*12) # cache for 12 hours
-            def _cached_story(cache_key: tuple, api_key: str, context_bundle: dict, voice_card: str):
-                # cache_key is intentionally unused inside; it drives cache invalidation
-                return generate_plant_story(
-                    api_key=api_key,
-                    context_bundle=context_bundle,
-                    voice_card=voice_card,
-                    model_id=MODEL_ID_DEFAULT,
-                )
-
-            api_key = st.secrets["GEMINI_API_KEY"]
-
-            # Single source of truth for this whole section:
-            context_bundle, voice_card, last_log_id = get_plant_context_bundle(
-                plant_id=plant_id,
-                season=season,
-                today=today,
-                weather=weather,
-                log_limit=10,
+            selected_plant_id = st.selectbox(
+                "Select a plant",
+                options=plant_ids,
+                format_func=lambda pid: f"{plant_lookup[pid][0]} ({plant_lookup[pid][1]})",
+                key="plant_selector",
             )
 
-            # Nice one-line botanical context (replaces your old profile SQL)
-            species = context_bundle.get("species", {})
-            scientific = (species.get("scientific_name") or "").strip()
-            care_context = (species.get("care_context") or "").strip()
-            native_climate = (species.get("native_climate") or "").strip()
+    with right:
+        # Always show mascot, even if no plants; keeps layout stable
+        st.image("images_mascot\\drawing2.png", width=1000)
 
-            if scientific or care_context or native_climate:
-                # Match your old italic style but avoid KeyErrors
-                parts = []
-                if scientific:
-                    parts.append(f"*{scientific}*")
-                if care_context:
-                    parts.append(f"({care_context})")
-                if native_climate:
-                    parts.append(native_climate)
-                st.write(" ".join(parts).replace(" )", ")"))
+    # Everything below is full-width but still inside container
+    if not plants:
+        st.caption("Add a plant to start journaling.")
+    elif selected_plant_id is None:
+        st.caption("Select a plant to view its journal entry and history.")
+    else:
+        plant_id = int(selected_plant_id)
 
-            # Cache key: use last_log_id so it changes on every inserted care_log row
+        # --- AI story (cached) ---
+        @st.cache_data(show_spinner=False, ttl=60*60*12)
+        def _cached_story(cache_key: tuple, api_key: str, context_bundle: dict, voice_card: str):
+            return generate_plant_story(
+                api_key=api_key,
+                context_bundle=context_bundle,
+                voice_card=voice_card,
+                model_id=MODEL_ID_DEFAULT,
+            )
+
+        api_key = st.secrets["GEMINI_API_KEY"]
+
+        context_bundle, voice_card, last_log_id = get_plant_context_bundle(
+            plant_id=plant_id,
+            season=season,
+            today=today,
+            weather=weather,
+            log_limit=10,
+        )
+
+        # Botanical context line
+        species = context_bundle.get("species", {})
+        scientific = (species.get("scientific_name") or "").strip()
+        care_context = (species.get("care_context") or "").strip()
+        native_climate = (species.get("native_climate") or "").strip()
+
+        if scientific or care_context or native_climate:
+            parts = []
+            if scientific:
+                parts.append(f"*{scientific}*")
+            if care_context:
+                parts.append(f"({care_context})")
+            if native_climate:
+                parts.append(native_climate)
+            st.write(" ".join(parts).replace(" )", ")"))
+
+            # Cache key: uses last_log_id so it changes on every inserted care_log row
             cache_key = (plant_id, season, last_log_id, PROMPT_VERSION, MODEL_ID_DEFAULT)
 
             # Generate + render
@@ -486,12 +463,11 @@ with container:
             except Exception as e:
                 st.error(f"AI story failed: {e}")
 
-            # --- A small “Recent care” section to match your previous UI ---
+            # --- Small Recent care section to still print something when AI quota exceeded/AI breaks ---
             st.subheader("Recent care")
             recent = context_bundle.get("care_log_recent", [])[:5]
             if recent:
                 for r in recent:
-                    # event_date is ISO string, event_type is your raw stored value
                     st.write(f"- {r.get('event_date', '')}: {r.get('event_type', '')} ({r.get('notes') or 'no notes'})")
             else:
                 st.write("No care events logged yet.")
