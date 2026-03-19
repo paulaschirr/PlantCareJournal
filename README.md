@@ -46,10 +46,10 @@ This structure allows the app to handle multiple plants of the same species beha
 
 For each plant, the app can generate a short plant journal entry:
 
-Written in the first person, from the plant’s perspective
-Based entirely on the structured data above (no external knowledge or speculation)
-Regenerated only when underlying data changes (using stable cache keys)
-Presented alongside the raw facts used to generate it, for transparency
+- Written in the first person, from the plant’s perspective
+- Based entirely on the structured data above (no external knowledge or speculation)
+- Regenerated only when underlying data changes (using stable cache keys)
+- Presented alongside the raw facts used to generate it, for transparency
 
 The AI layer is intentionally narrow in scope: it acts as a **readable narrative lens** over existing data, not as an automated care system.
 
