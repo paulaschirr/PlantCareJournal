@@ -416,7 +416,7 @@ with container:
 
             # --- AI story (cached) ---
             # Define this ONCE per script run; Streamlit is fine with it here.
-            @st.cache_data(show_spinner=False)
+            @st.cache_data(show_spinner=False, ttl=60*60*12) # cache for 12 hours
             def _cached_story(cache_key: tuple, api_key: str, context_bundle: dict, voice_card: str):
                 # cache_key is intentionally unused inside; it drives cache invalidation
                 return generate_plant_story(
@@ -434,7 +434,7 @@ with container:
                 season=season,
                 today=today,
                 weather=weather,
-                log_limit=20,
+                log_limit=10,
             )
 
             # Nice one-line botanical context (replaces your old profile SQL)
@@ -459,10 +459,10 @@ with container:
 
             # Generate + render
             try:
-                with st.spinner("Writing the leaf notes..."):
+                with st.spinner("Connecting to leaf notes..."):
                     story = _cached_story(cache_key, api_key, context_bundle, voice_card)
 
-                st.subheader("Plant journal entry")  # change this label as you like
+                st.subheader("Plant journal entry")  
                 st.write(story.get("narrative", ""))
 
                 highlights = story.get("highlights") or []

@@ -15,7 +15,7 @@ def get_plant_context_bundle(
     season: str,
     today: Optional[date] = None,
     weather: Optional[Dict[str, Any]] = None,
-    log_limit: int = 20,
+    log_limit: int = 10,
 ) -> Tuple[Dict[str, Any], str, int]:
     """
     Returns:
@@ -36,7 +36,6 @@ def get_plant_context_bundle(
               p.name,
               p.location,
               p.notes AS plant_notes,
-              p.photo_path,
 
               s.species_id,
               s.common_name,
@@ -94,7 +93,6 @@ def get_plant_context_bundle(
             "name": profile_dict.get("name"),
             "location": profile_dict.get("location"),
             "notes": profile_dict.get("plant_notes"),
-            "photo_path": profile_dict.get("photo_path"),
         },
         "species": {
             "common_name": profile_dict.get("common_name"),
