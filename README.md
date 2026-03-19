@@ -29,6 +29,12 @@ This is a deliberately non‑automated project: the emphasis is on explainable l
 
 ---
 
+### A note on tone
+- The app includes a small, hand‑drawn plant mascot used as a narrative voice for the optional AI‑generated journal entries
+- This is a deliberate design choice, keeping the AI layer readable and human‑centred, without obscuring the underlying data or decision logic
+<img src="images_mascot/drawing2.png" width="160" align="left" />
+---
+
 ## Data model & AI layer
 
 The data model deliberately separates **context**, **intent**, and **observed behaviour**.
