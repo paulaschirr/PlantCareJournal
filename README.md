@@ -29,14 +29,6 @@ This is a deliberately non‑automated project: the emphasis is on explainable l
 
 ---
 
-## A note on tone
-<img src="images_mascot/drawing2.png" width="160" align="right" />
-
-- The app includes a small, hand‑drawn plant mascot that serves as the narrative voice for the optional AI‑assisted journal entries
-- This is a deliberate design choice, keeping the AI layer readable and human‑centred, without obscuring the underlying data or decision logic
-
----
-
 ## Data model & AI layer
 
 The data model deliberately separates **context**, **intent**, and **observed behaviour**.
@@ -49,6 +41,7 @@ The data model deliberately separates **context**, **intent**, and **observed be
 This structure allows the app to handle multiple plants of the same species behaving differently in different locations, and to reason about how real‑world care aligns (or diverges) from expectations.
 
 ---
+
 ## AI plant journal entries
 
 For each plant, the app can generate a short plant journal entry:
@@ -61,6 +54,15 @@ Presented alongside the raw facts used to generate it, for transparency
 The AI layer is intentionally narrow in scope: it acts as a **readable narrative lens** over existing data, not as an automated care system.
 
 ---
+
+## A note on tone
+<img src="images_mascot/drawing2.png" width="160" align="right" />
+
+- The app includes a small, hand‑drawn plant mascot that serves as the narrative voice for the optional AI‑assisted journal entries
+- This is a deliberate design choice, keeping the AI layer readable and human‑centred, without obscuring the underlying data or decision logic
+
+---
+
 ## Tech stack
 
 - Python  
