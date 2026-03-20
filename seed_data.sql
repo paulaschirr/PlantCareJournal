@@ -50,7 +50,7 @@ INSERT INTO plants (plant_id, species_id, name, photo_path, location, notes) VAL
 (3, 1, 'Boston fern',        'images/DSC_0046.jpg', 'office',   'lower light corner, low humidity'),
 (4, 3, 'Monstera',           'images/DSC_0047.jpg', 'kitchen',  'Variable temperature and humidity, near east-facing window, low light corner, coir moss pole as climbing support');
 
--- care_profiles (id, species_id, season, watering_days, feeding_days, light, notes)
+-- care_profiles
 -- Boston fern in office (species_id = 1)
 INSERT INTO care_profiles (care_profile_id, plant_id, season, watering_days, feeding_days, light_preference, notes) VALUES
 (1, 3, 'spring', 4, 30, 'Medium to bright indirect', 'Resuming growth. Soil should stay damp.'),
@@ -75,11 +75,11 @@ INSERT INTO care_profiles (care_profile_id, plant_id, season, watering_days, fee
 -- Monstera again (species_id = 3)
 INSERT INTO care_profiles (care_profile_id, plant_id, season, watering_days, feeding_days, light_preference, notes) VALUES
 (13, 4, 'spring', 10, 30, 'Bright indirect; tolerates medium light', 'Kitchen east-facing: good morning light; water when top 3-5 cm dry'),
-(14, 4, 'summer', 7, 21,  'Bright indirect',                           'Warmer temps = faster drying; support growth with regular feeding'),
-(15, 4, 'autumn', 10, 45, 'Medium to bright indirect',                 'Reduce watering and feeding as growth slows'),
+(14, 4, 'summer', 7, 21,  'Bright indirect', 'Warmer temps = faster drying; support growth with regular feeding'),
+(15, 4, 'autumn', 10, 45, 'Medium to bright indirect', 'Reduce watering and feeding as growth slows'),
 (16, 4, 'winter', 14, NULL, 'Medium indirect; brightest spot available','Avoid overwatering; low light means slow uptake');
 
--- care_log (id, plant_id, event_type, event_date, notes)
+-- care_log
 INSERT INTO care_log (log_id, plant_id, event_type, event_date, notes) VALUES
 (1, 1, 'watered',  '2026-03-10', 'Baseline watering: all plants watered'),
 (2, 2, 'watered',  '2026-03-10', 'Baseline watering: all plants watered'),
