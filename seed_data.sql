@@ -44,7 +44,7 @@ Imagery: reaching/ opening/ filtered light/ holes. Catchphrase: "Airy by design"
 );
 
 -- plants
-INSERT INTO plants (plant_id, species_id, nickname, image_path, location, notes) VALUES
+INSERT INTO plants (plant_id, species_id, name, photo_path, location, notes) VALUES
 (1, 2, 'Thanksgiving cactus', 'images/DSC_0040.jpg', 'office', 'near south-facing window'),
 (2, 1, 'Boston fern',        'images/DSC_0045.jpg', 'bathroom', 'Higher humidity; temperature varies a lot'),
 (3, 1, 'Boston fern',        'images/DSC_0046.jpg', 'office',   'lower light corner, low humidity'),
