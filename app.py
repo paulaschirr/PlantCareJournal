@@ -365,7 +365,7 @@ with container:
     # Pull plant list once (before rendering UI that depends on it)
     plants = get_all_plants()
 
-    left, right = st.columns([5, 1], vertical_alignment="bottom")
+    left, right = st.columns([6, 1], vertical_alignment="bottom")
 
     with left:
         st.header("Profile & History")
@@ -450,7 +450,7 @@ with container:
 
                 suggestions = story.get("suggestions") or []
                 if suggestions:
-                    st.caption("If you want to do something today:")
+                    st.caption("What I need:")
                     for s in suggestions:
                         st.write(f"- {s}")
 

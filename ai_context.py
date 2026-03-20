@@ -6,6 +6,16 @@ from typing import Any, Dict, Optional, Tuple
 DB_PATH = "plants.db"
 
 
+def _sanitize_weather_for_ai(raw):
+    """
+    Keep only what the plant can 'see' outside.
+    Returns: {"description": "..."} or None.
+    """
+    if not raw or not isinstance(raw, dict):
+        return None
+    desc = (raw.get("description") or "").strip()
+    return {"description": desc} if desc else None
+
 def _row_to_dict(row: Optional[sqlite3.Row]) -> Optional[Dict[str, Any]]:
     return dict(row) if row is not None else None
 
@@ -77,7 +87,7 @@ def get_plant_context_bundle(
         ).fetchone()
         last_log_id = int(last_log_id_row["last_log_id"]) if last_log_id_row else 0
 
-        # Also handy: last event date (for display only; don't rely on it for cache invalidation)
+        # Also handy: last event date (for display only; can't rely on it for cache invalidation, as multiple logs could be added on the same day)
         last_event_date_row = conn.execute(
             "SELECT MAX(event_date) AS last_event_date FROM care_log WHERE plant_id = ?",
             (plant_id,),
@@ -110,7 +120,7 @@ def get_plant_context_bundle(
         "today": {
             "date": today.isoformat(),
             "season": season,
-            "weather": weather,  # optional dict- already have this from weather.py
+            "weather": _sanitize_weather_for_ai(weather),  
         },
         "care_log_recent": [dict(r) for r in logs],
         "computed": {
