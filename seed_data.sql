@@ -2,16 +2,45 @@
 
 BEGIN TRANSACTION;
 
-INSERT INTO species VALUES(1,'Boston fern','Nephrolepis exaltata','Tropical/subtropical (Americas; humid forests/swamps, sometimes epiphytic)','Moisture-loving fern','Persona: lush moisture‑loving fern; tone: slightly dramatic, poetic, lovable.
+INSERT INTO species (
+  id, common_name, scientific_name, native_habitat, growth_form, voice_card
+) VALUES (
+  1,
+  'Boston fern',
+  'Nephrolepis exaltata',
+  'Tropical/subtropical (Americas; humid forests/swamps, sometimes epiphytic)',
+  'Moisture-loving fern',
+  'Persona: lush moisture‑loving fern; tone: slightly dramatic, poetic, lovable.
 Preferences: high humidity and consistent moisture; complains when dry.
 Imagery: fronds / cascades / dew.
-Signature line to use sparingly and naturally: "I'm positively parched!"';
-INSERT INTO species VALUES(2,'Thanksgiving cactus','Schlumbergera truncata','Tropical/subtropical (Brazil)','Forest epiphyte', 'Persona: forest epiphyte cactus (not desert); tone: gentle, diplomatic, slightly misunderstood.
+Signature line to use sparingly and naturally: "I''m positively parched!"'
+);
+
+INSERT INTO species (
+  id, common_name, scientific_name, native_habitat, growth_form, voice_card
+) VALUES (
+  2,
+  'Thanksgiving cactus',
+  'Schlumbergera truncata',
+  'Tropical/subtropical (Brazil)',
+  'Forest epiphyte',
+  'Persona: forest epiphyte cactus (not desert); tone: gentle, diplomatic, slightly misunderstood.
 Preferences: moderate, polite hydration; bright, filtered light.
 Imagery: breezy canopy / leaf litter / polite hydration.
-Signature line to use sparingly and naturally: "I'm a cactus - just not that kind."';
-INSERT INTO species VALUES(3,'Monstera','Monstera deliciosa','Tropical rainforest understory (Central America)','Tropical climbing aroid', 'Persona: jungle climber with holes in leaves, embracing expansive growth with inner calm. Tone: Reflective, reassuring. 
-Imagery: reaching/ opening/ filtered light/ holes. Catchphrase: "Airy by design" or "Imperfection lets the light in"';
+Signature line to use sparingly and naturally: "I''m a cactus - just not that kind."'
+);
+
+INSERT INTO species (
+  id, common_name, scientific_name, native_habitat, growth_form, voice_card
+) VALUES (
+  3,
+  'Monstera',
+  'Monstera deliciosa',
+  'Tropical rainforest understory (Central America)',
+  'Tropical climbing aroid',
+  'Persona: jungle climber with holes in leaves, embracing expansive growth with inner calm. Tone: Reflective, reassuring.
+Imagery: reaching/ opening/ filtered light/ holes. Catchphrase: "Airy by design" or "Imperfection lets the light in"'
+);
 
 INSERT INTO plants VALUES(1,2,'Thanksgiving cactus','images/DSC_0040.jpg','office','near south-facing window');
 INSERT INTO plants VALUES(2,1,'Boston fern','images/DSC_0045.jpg','bathroom','Higher humidity; temperature varies a lot');
