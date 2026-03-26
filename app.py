@@ -408,7 +408,6 @@ st.space(size="medium")
 # ---------- Plant overview ----------
 container = st.container(border=True, key="profiles_container")
 
-
 with container:
     # Pull plant list once (before rendering UI that depends on it)
     plants = get_all_plants()
@@ -435,7 +434,6 @@ with container:
         # Always show mascot, even if no plants; keeps layout stable
         st.image("images_mascot\\drawing2.png", width=1000)
 
-    # Everything below is full-width but still inside container
     if not plants:
         st.caption("Add a plant to start journaling.")
     elif selected_plant_id is None:
@@ -443,18 +441,8 @@ with container:
     else:
         plant_id = int(selected_plant_id)
 
-        # --- AI story (cached) ---
-        @st.cache_data(show_spinner=False, ttl=60*60*12)
-        def _cached_story(cache_key: tuple, api_key: str, context_bundle: dict, voice_card: str):
-            return generate_plant_story(
-                api_key=api_key,
-                context_bundle=context_bundle,
-                voice_card=voice_card,
-                model_id=MODEL_ID_DEFAULT,
-            )
-
+        # --- Context bundle is needed for both AI and Recent care ---
         api_key = st.secrets["GEMINI_API_KEY"]
-
         context_bundle, voice_card, last_log_id = get_plant_context_bundle(
             plant_id=plant_id,
             season=season,
@@ -463,12 +451,11 @@ with container:
             log_limit=10,
         )
 
-        # Botanical context line
+        # Optional botanical context line
         species = context_bundle.get("species", {})
         scientific = (species.get("scientific_name") or "").strip()
         care_context = (species.get("care_context") or "").strip()
         native_climate = (species.get("native_climate") or "").strip()
-
         if scientific or care_context or native_climate:
             parts = []
             if scientific:
@@ -479,15 +466,40 @@ with container:
                 parts.append(native_climate)
             st.write(" ".join(parts).replace(" )", ")"))
 
-            # Cache key: uses last_log_id so it changes on every inserted care_log row
-            cache_key = (plant_id, season, last_log_id, PROMPT_VERSION, MODEL_ID_DEFAULT)
+        # --- AI journal toggle (per-plant) ---
+        ai_key = f"ai_journal_enabled_{plant_id}"
+        if ai_key not in st.session_state:
+            st.session_state[ai_key] = False  # default OFF
 
-            # Generate + render
+        st.toggle(
+            "Write plant journal entry",
+            key=ai_key
+        )
+
+        # --- Conditionally call AI ---
+        if st.session_state.get(ai_key):
+            @st.cache_data(show_spinner=False, ttl=60*60*12)
+            def _cached_story(cache_key, api_key, context_bundle, voice_card):
+                return generate_plant_story(
+                    api_key=api_key,
+                    context_bundle=context_bundle,
+                    voice_card=voice_card,
+                    model_id=MODEL_ID_DEFAULT,
+                )
+
+            cache_key = (
+                plant_id,
+                season,
+                last_log_id,
+                PROMPT_VERSION,
+                MODEL_ID_DEFAULT,
+            )
+
             try:
                 with st.spinner("Connecting to leaf notes..."):
                     story = _cached_story(cache_key, api_key, context_bundle, voice_card)
 
-                st.subheader("Plant journal entry")  
+                st.subheader("Plant journal entry")
                 st.write(story.get("narrative", ""))
 
                 highlights = story.get("highlights") or []
@@ -510,16 +522,21 @@ with container:
 
             except Exception as e:
                 st.error(f"AI story failed: {e}")
+        else:
+            st.caption("AI plant journal entry is disabled.")
 
-            # --- Small Recent care section to still print something when AI quota exceeded/AI breaks ---
-            st.subheader("Recent care")
-            recent = context_bundle.get("care_log_recent", [])[:5]
-            if recent:
-                for r in recent:
-                    st.write(f"- {r.get('event_date', '')}: {r.get('event_type', '')} ({r.get('notes') or 'no notes'})")
-            else:
-                st.write("No care events logged yet.")
+        # --- Recent care (always shown) ---
+        st.subheader("Recent care")
+        recent = context_bundle.get("care_log_recent", [])[:5]
+        if recent:
+            for r in recent:
+                st.write(
+                    f"- {r.get('event_date', '')}: {r.get('event_type', '')} "
+                    f"({r.get('notes') or 'no notes'})"
+                )
+        else:
+            st.write("No care events logged yet.")
 
-            # Raw facts / logs / schedule
-            with st.expander("Details / logs / schedule"):
-                st.json(context_bundle)
+        # Raw facts / logs / schedule
+        with st.expander("Details / logs / schedule"):
+            st.json(context_bundle)
