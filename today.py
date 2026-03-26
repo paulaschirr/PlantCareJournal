@@ -69,7 +69,7 @@ WITH profile AS (
 last_events AS (
   SELECT
     plant_id,
-    MAX(CASE WHEN event_type = 'watered' THEN event_date END) AS last_watered,
+    MAX(CASE WHEN event_type IN ('watered', 'fed') THEN event_date END) AS last_watered,
     MAX(CASE WHEN event_type = 'fed' THEN event_date END) AS last_fed
   FROM care_log
   GROUP BY plant_id

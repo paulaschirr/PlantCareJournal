@@ -1,19 +1,18 @@
-"""
-log_event.py
-
-User-friendly logging of care events (watering, feeding, etc.)
-Designed to be called from:
-- CLI scripts
-- Streamlit buttons
-- Future agent logic
-"""
-
+# log_event.py
 import sqlite3
 from datetime import date
 from typing import Optional, Iterable
 
 DB_PATH = "plants.db"
 
+def _insert(conn, plant_id: int, event_type: str, event_date: date, notes: Optional[str]):
+    conn.execute(
+        """
+        INSERT INTO care_log (plant_id, event_type, event_date, notes)
+        VALUES (?, ?, ?, ?)
+        """,
+        (plant_id, event_type, event_date.isoformat(), notes),
+    )
 
 def log_event(
     plant_id: int,
@@ -22,31 +21,31 @@ def log_event(
     notes: Optional[str] = None,
 ):
     """
-    Log a single care event for a plant.
-
-    Parameters
-    ----------
-    plant_id : int
-        ID of the plant
-    event_type : str
-        e.g. 'watered', 'fed', 'repotted'
-    event_date : date, optional
-        Defaults to today
-    notes : str, optional
-        Free-text notes for context
+    Log a single care event. If event_type == 'fed', also log a 'watered' row
+    with the same timestamp and note (atomic transaction).
     """
     event_date = event_date or date.today()
-
     with sqlite3.connect(DB_PATH) as conn:
-        conn.execute(
-            """
-            INSERT INTO care_log (plant_id, event_type, event_date, notes)
-            VALUES (?, ?, ?, ?)
-            """,
-            (plant_id, event_type, event_date.isoformat(), notes),
-        )
-        conn.commit()
+        # Start transaction
+        _insert(conn, plant_id, event_type, event_date, notes)
 
+        if event_type == "fed":
+            # Optional de-dupe: avoid accidental double-water if a 'watered' exists at same datetime
+            conn.execute(
+                """
+                INSERT INTO care_log (plant_id, event_type, event_date, notes)
+                SELECT ?, 'watered', ?, ?
+                WHERE NOT EXISTS (
+                    SELECT 1 FROM care_log
+                    WHERE plant_id = ?
+                      AND event_type = 'watered'
+                      AND event_date = ?
+                )
+                """,
+                (plant_id, event_date.isoformat(), notes, plant_id, event_date.isoformat()),
+            )
+
+        conn.commit()
 
 def log_bulk(
     plant_ids: Iterable[int],
@@ -54,34 +53,24 @@ def log_bulk(
     notes: Optional[str] = None,
 ):
     """
-    Log the same event for multiple plants (e.g. 'watered all plants').
-
-    Parameters
-    ----------
-    plant_ids : iterable of int
-    event_type : str
-    notes : str, optional
+    Log the same event for multiple plants. Inherits 'fed' -> 'watered' rule.
     """
-    today = date.today().isoformat()
-
+    today = date.today()
     with sqlite3.connect(DB_PATH) as conn:
-        conn.executemany(
-            """
-            INSERT INTO care_log (plant_id, event_type, event_date, notes)
-            VALUES (?, ?, ?, ?)
-            """,
-            [(pid, event_type, today, notes) for pid in plant_ids],
-        )
+        for pid in plant_ids:
+            _insert(conn, pid, event_type, today, notes)
+            if event_type == "fed":
+                conn.execute(
+                    """
+                    INSERT INTO care_log (plant_id, event_type, event_date, notes)
+                    SELECT ?, 'watered', ?, ?
+                    WHERE NOT EXISTS (
+                        SELECT 1 FROM care_log
+                        WHERE plant_id = ?
+                          AND event_type = 'watered'
+                          AND event_date = ?
+                    )
+                    """,
+                    (pid, today.isoformat(), notes, pid, today.isoformat()),
+                )
         conn.commit()
-
-
-# --- Optional CLI usage ---
-if __name__ == "__main__":
-    # Example: log watering for plant 3
-    log_event(
-        plant_id=3,
-        event_type="watered",
-        notes="Soil dry; watered thoroughly"
-    )
-
-    print("Event logged.")
