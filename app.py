@@ -1,7 +1,7 @@
 import streamlit as st
 import sqlite3
 from datetime import date
-import os
+import math
 
 from weather import get_current_weather
 from log_event import log_event
@@ -47,30 +47,26 @@ def get_all_plants():
             "SELECT plant_id, name, location FROM plants ORDER BY location, name"
         ).fetchall()
 
+
 def health_score(rel_rows):
     """
-    Returns (score_0_to_10, due_count, total_count)
-    Full bar = most plants are fine. Empty = many due/overdue.
+    Returns (score_0_to_10, due_count, total_count) where the score is simply:
+      10 * (not-due count / total)
+    Interpretation:
+      - Full bar when none are due.
+      - If 1 of 22 is due -> 21/22 (progress = 21/22).
+      - If 20 of 22 are due -> 2/22.
     """
     if not rel_rows:
-        return 10, 0, 0
+        return 10, 0, 0  # no scheduled items => all fine
 
     total = len(rel_rows)
-    due_count = sum(1 for r in rel_rows if r["days_to_due"] is not None and r["days_to_due"] <= 0)
-
-    happy = 0.0
-    for r in rel_rows:
-        d = r["days_to_due"]
-        if d is None:
-            continue
-        if d > 2:
-            happy += 1.0
-        elif d > 0:
-            happy += 0.5
-        else:
-            happy += 0.0
-
-    score = int(round(10 * (happy / total)))
+    due_count = sum(
+        1 for r in rel_rows
+        if r["days_to_due"] is not None and r["days_to_due"] <= 0
+    )
+    ok_count = total - due_count
+    score = math.floor((10 * (ok_count / total))) # floor to avoid showing 10/10 when 1 plant is due
     return max(0, min(10, score)), due_count, total
 
 def serious_overdue_alerts(rows, task_type, multiplier, limit=3):
@@ -96,6 +92,8 @@ def serious_overdue_alerts(rows, task_type, multiplier, limit=3):
 
     candidates.sort(key=lambda x: x[0], reverse=True)
     return [r for _, r in candidates[:limit]]
+
+DUE_SOON_THRESHOLD = 2  # days to due within this threshold are shown in the "Due soon (worth a check)" section
 
 # ---------- Header ----------
 
@@ -132,19 +130,22 @@ feed_rows  = [r for r in rows if r["task_type"] == "fed"]
 w_score, w_due, w_total = health_score(water_rows)
 f_score, f_due, f_total = health_score(feed_rows)
 
+w_ok = w_total - w_due
+f_ok = f_total - f_due
+
 sum1, sum2 = st.columns(2)
 with sum1:
     row = st.columns([1, 3, 5, 3])
     row[0].space(size="small")
     row[1].markdown("**Water status**")
     row[2].progress(w_score / 10)
-    row[3].markdown(f"{w_due} due / {w_total}")  
+    row[3].markdown(f"{w_ok}/{w_total}")   # show happy plants / total need watering
 with sum2:
     row = st.columns([1, 3, 5, 3])
     row[0].space(size="small")
     row[1].markdown("**Feeding status**")
     row[2].progress(f_score / 10)
-    row[3].markdown(f"{f_due} due / {f_total}")  
+    row[3].markdown(f"{f_ok}/{f_total}")   # show happy plants / total need feeding
 
 
 # ---------- Serious overdue alerts ----------
@@ -176,37 +177,84 @@ if water_alerts or feed_alerts:
 water_due = [r for r in water_rows if r["days_to_due"] is not None and r["days_to_due"] <= 0]
 feed_due  = [r for r in feed_rows  if r["days_to_due"] is not None and r["days_to_due"] <= 0]
 
-with st.expander("**Show plants to check**", expanded=False):
 
-    if not water_due and not feed_due:
-        st.success("No watering or feeding tasks due today")
+########################### Due plants expander with checkboxes to log care ############################
+
+with st.expander("**Show plants to check**", expanded=False):
+    # Partition by status
+    water_due = [r for r in water_rows if r["days_to_due"] is not None and r["days_to_due"] <= 0]
+    feed_due  = [r for r in feed_rows  if r["days_to_due"] is not None and r["days_to_due"] <= 0]
+
+    water_soon = [
+        r for r in water_rows
+        if r["days_to_due"] is not None and 0 < r["days_to_due"] <= DUE_SOON_THRESHOLD
+    ]
+    feed_soon = [
+        r for r in feed_rows
+        if r["days_to_due"] is not None and 0 < r["days_to_due"] <= DUE_SOON_THRESHOLD
+    ]
+
+    if not water_due and not feed_due and not water_soon and not feed_soon:
+        st.success("No watering or feeding tasks due or due soon.")
     else:
-        selected_water = []
-        selected_feed = []
+        selected_water_due: list[dict] = []
+        selected_feed_due: list[dict] = []
+        selected_water_soon: list[dict] = []
+        selected_feed_soon: list[dict] = []
 
         col1, col2 = st.columns(2)
 
+        # -------- Left: Watering --------
         with col1:
-            st.subheader("Consider Watering")
+            st.subheader("Watering")
             if water_due:
+                st.markdown("**Due now**")
                 for r in water_due:
                     label = f"{r['name']} ({r['location']})"
-                    if st.checkbox(label, key=f"water_{r['plant_id']}"):
-                        selected_water.append(r)
+                    if st.checkbox(label, key=f"water_due_{r['plant_id']}"):
+                        selected_water_due.append(r)
                     st.caption(format_explanation(r, season))
             else:
-                st.write("No watering due.")
+                st.caption("No plants due to water.")
 
+            if water_soon:
+                st.markdown("---")
+                st.markdown("**Due soon (worth a check)**")
+                for r in water_soon:
+                    label = f"{r['name']} ({r['location']}) — in {r['days_to_due']} day(s)"
+                    if st.checkbox(label, key=f"water_soon_{r['plant_id']}"):
+                        selected_water_soon.append(r)
+                    st.caption(format_explanation(r, season))
+            else:
+                st.caption("No plants due soon for watering.")
+
+        # -------- Right: Feeding --------
         with col2:
-            st.subheader("Consider Feeding")
+            st.subheader("Feeding")
             if feed_due:
+                st.markdown("**Due now**")
                 for r in feed_due:
                     label = f"{r['name']} ({r['location']})"
-                    if st.checkbox(label, key=f"feed_{r['plant_id']}"):
-                        selected_feed.append(r)
+                    if st.checkbox(label, key=f"feed_due_{r['plant_id']}"):
+                        selected_feed_due.append(r)
                     st.caption(format_explanation(r, season))
             else:
-                st.write("No feeding due.")
+                st.caption("No plants due to feed.")
+
+            if feed_soon:
+                st.markdown("---")
+                st.markdown("**Due soon (worth a check)**")
+                for r in feed_soon:
+                    label = f"{r['name']} ({r['location']}) — in {r['days_to_due']} day(s)"
+                    if st.checkbox(label, key=f"feed_soon_{r['plant_id']}"):
+                        selected_feed_soon.append(r)
+                    st.caption(format_explanation(r, season))
+            else:
+                st.caption("No plants due soon for feeding.")
+
+        # Combine selections for logging
+        selected_water = selected_water_due + selected_water_soon
+        selected_feed  = selected_feed_due  + selected_feed_soon
 
         # ---------- Batch logging ----------
         st.space(size="small")
